@@ -5,7 +5,7 @@ import {
   TrianglesMini,
   XMarkMini,
 } from "@medusajs/icons";
-import { AdminProductCategoryResponse } from "@medusajs/types";
+import { ProductCategoryDTO } from "@medusajs/types";
 import { Divider, Text, clx } from "@medusajs/ui";
 import { Popover as RadixPopover } from "radix-ui";
 import { usePermissionGate } from "@mercurjs/dashboard-shared";
@@ -28,14 +28,12 @@ import { TextSkeleton } from "../../../../../components/common/skeleton";
 import { useProductCategories } from "../../../../../hooks/api/categories";
 import { useDebouncedSearch } from "../../../../../hooks/use-debounced-search";
 
-interface CategoryComboboxProps extends Omit<
+export interface CategoryComboboxProps extends Omit<
   ComponentPropsWithoutRef<"input">,
   "value" | "defaultValue" | "onChange"
 > {
   value: string[];
   onChange: (value: string[]) => void;
-  isSingleSelect?: boolean;
-  allowClear?: boolean;
 }
 
 type Level = {
@@ -49,7 +47,7 @@ const TAG_BASE_WIDTH = 28;
 export const CategoryCombobox = forwardRef<
   HTMLInputElement,
   CategoryComboboxProps
->(({ value, onChange, className, isSingleSelect: _isSingleSelect, allowClear: _allowClear, ...props }, ref) => {
+>(({ value, onChange, className, ...props }, ref) => {
   const innerRef = useRef<HTMLInputElement>(null);
 
   useImperativeHandle<HTMLInputElement | null, HTMLInputElement | null>(
@@ -146,7 +144,7 @@ export const CategoryCombobox = forwardRef<
   );
 
   function handleOpenChange(open: boolean) {
-    if (open && gate.denied) {
+    if (open && (props.disabled || gate.denied)) {
       return;
     }
 
@@ -290,11 +288,14 @@ export const CategoryCombobox = forwardRef<
             {showTag && (
               <button
                 type="button"
+                disabled={props.disabled}
+                aria-label={`${t("actions.clearAll")} (${value.length})`}
                 onClick={(e) => {
                   e.preventDefault();
+                  e.stopPropagation();
                   onChange([]);
                 }}
-                className="bg-ui-bg-base hover:bg-ui-bg-base-hover txt-compact-small-plus text-ui-fg-subtle focus-within:border-ui-fg-interactive transition-fg absolute start-0.5 top-0.5 flex h-[28px] items-center rounded-[4px] border py-[3px] ps-1.5 pe-1 outline-none"
+                className="bg-ui-bg-base hover:bg-ui-bg-base-hover disabled:bg-ui-bg-disabled disabled:text-ui-fg-disabled disabled:pointer-events-none txt-compact-small-plus text-ui-fg-subtle focus-within:border-ui-fg-interactive transition-fg absolute start-0.5 top-0.5 flex h-[28px] items-center rounded-[4px] border py-[3px] ps-1.5 pe-1 outline-none"
               >
                 <span className="tabular-nums">{value.length}</span>
                 <XMarkMini className="text-ui-fg-muted" />
@@ -328,7 +329,7 @@ export const CategoryCombobox = forwardRef<
             />
             <button
               type="button"
-              disabled={gate.denied}
+              disabled={props.disabled || gate.denied}
               onClick={() => handleOpenChange(true)}
               className="text-ui-fg-muted transition-fg hover:bg-ui-bg-field-hover absolute end-0 flex size-8 items-center justify-center rounded-r outline-none"
             >
@@ -506,7 +507,7 @@ function getParentLabel(level: Level[]): string | null {
 }
 
 function getOptions(
-  categories: AdminProductCategoryResponse["product_category"][],
+  categories: ProductCategoryDTO[],
 ): ProductCategoryOption[] {
   return categories.map((cat) => {
     return {

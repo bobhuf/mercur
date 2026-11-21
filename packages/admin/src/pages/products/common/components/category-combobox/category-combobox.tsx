@@ -5,7 +5,7 @@ import {
   TrianglesMini,
   XMarkMini,
 } from "@medusajs/icons"
-import { AdminProductCategoryResponse } from "@medusajs/types"
+import { ProductCategoryDTO } from "@medusajs/types"
 import { Divider, Text, clx } from "@medusajs/ui"
 import { usePermissionGate } from "@mercurjs/dashboard-shared"
 import { Popover as RadixPopover } from "radix-ui"
@@ -28,7 +28,7 @@ import { TextSkeleton } from "../../../../../components/common/skeleton"
 import { useProductCategories } from "../../../../../hooks/api/categories"
 import { useDebouncedSearch } from "../../../../../hooks/use-debounced-search"
 
-interface CategoryComboboxProps
+export interface CategoryComboboxProps
   extends Omit<
     ComponentPropsWithoutRef<"input">,
     "value" | "defaultValue" | "onChange"
@@ -147,6 +147,10 @@ export const CategoryCombobox = forwardRef<
   )
 
   function handleOpenChange(open: boolean) {
+    if (open && (disabled || categoriesGate.denied)) {
+      return
+    }
+
     if (!open) {
       onSearchValueChange("")
       setLevel([])
@@ -279,11 +283,14 @@ export const CategoryCombobox = forwardRef<
             {showTag && (
               <button
                 type="button"
+                disabled={disabled}
+                aria-label={`${t("actions.clearAll")} (${value.length})`}
                 onClick={(e) => {
                   e.preventDefault()
+                  e.stopPropagation()
                   onChange([])
                 }}
-                className="bg-ui-bg-base hover:bg-ui-bg-base-hover txt-compact-small-plus text-ui-fg-subtle focus-within:border-ui-fg-interactive transition-fg absolute start-0.5 top-0.5 flex h-[28px] items-center rounded-[4px] border py-[3px] ps-1.5 pe-1 outline-none"
+                className="bg-ui-bg-base hover:bg-ui-bg-base-hover disabled:bg-ui-bg-disabled disabled:text-ui-fg-disabled disabled:pointer-events-none txt-compact-small-plus text-ui-fg-subtle focus-within:border-ui-fg-interactive transition-fg absolute start-0.5 top-0.5 flex h-[28px] items-center rounded-[4px] border py-[3px] ps-1.5 pe-1 outline-none"
               >
                 <span className="tabular-nums">{value.length}</span>
                 <XMarkMini className="text-ui-fg-muted" />
@@ -495,7 +502,7 @@ function getParentLabel(level: Level[]): string | null {
 }
 
 function getOptions(
-  categories: AdminProductCategoryResponse["product_category"][]
+  categories: ProductCategoryDTO[]
 ): ProductCategoryOption[] {
   return categories.map((cat) => {
     return {
